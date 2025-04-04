@@ -10,6 +10,10 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Kismet/GameplayStatics.h"
+#include "CNetPlayerAnimInstance.h"
+#include "Components/WidgetComponent.h"
+#include "CMainUI.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -54,6 +58,27 @@ ASeSAC_NetworkCharacter::ASeSAC_NetworkCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	GunComp = CreateDefaultSubobject<USceneComponent>(TEXT("GunComp"));
+	GunComp->SetupAttachment(GetMesh(), TEXT("GunPosition"));
+
+}
+
+void ASeSAC_NetworkCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	InitUIWidget();
+
+	// 총 검색
+	TArray<AActor*> allactors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AActor::StaticClass(), allactors);
+	for (const auto& actor : allactors)
+	{
+		if (actor->GetName().Contains("BP_Pistol"))
+			PistolActors.Add(actor);
+	}
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -73,6 +98,125 @@ void ASeSAC_NetworkCharacter::NotifyControllerChanged()
 	}
 }
 
+void ASeSAC_NetworkCharacter::TakePistol(const FInputActionValue& Value)
+{
+	// 총을 소유하지 않았다면 일정 범위 안에 있는 총을 잡는다.
+
+	// 필요 속성 : 총을 소유하고 있는지, 소유중인 총, 총을 잡을 수 있는 범위
+
+	// 1. 총을 잡고 있지 않다면
+	if (bHasPistol == true)	return;
+
+	// 2. 월드에 있는 총을 모두 찾는다.
+	for (const auto& pistol : PistolActors)
+	{
+		// 3. 총의 주인이 있다면 그 총은 검사하지 않는다.
+		// 총이 없어질 수 있는 경우가 있다면 NULL체크 필요
+		if (pistol->GetOwner() != nullptr) continue;
+
+		// 4. 총과의 거리를 구한다.
+		float distance = FVector::Dist(GetActorLocation(), pistol->GetActorLocation());
+
+		// 5. 총이 범위 안에 있다면
+		if (distance <= DistanceToGun)
+		{
+			// 6. 소유중인 총으로 등록한다.
+			OwnedPistol = pistol;
+
+			// 7. 총의 소유자를 자신으로 등록한다.
+			pistol->SetOwner(this);
+
+			// 8. 총 소유 상태를 변경한다.
+			bHasPistol = true;
+
+			// 9. 해당 총을 붙인다.
+			AttachPistol(pistol);
+
+			break;
+		}
+	} // for pistol
+
+}
+
+void ASeSAC_NetworkCharacter::ReleasePistol(const FInputActionValue& Value)
+{
+	// 총을 잡지 않았을 때는 처리하지 않는다.
+	if (bHasPistol == false) return;
+
+	// 총 소유시
+	if (OwnedPistol)
+	{
+		DetachPistol(OwnedPistol);
+
+		// 미소유로 설정
+		bHasPistol = false;
+
+		OwnedPistol->SetOwner(nullptr);
+		OwnedPistol = nullptr;
+	}
+
+}
+
+void ASeSAC_NetworkCharacter::Fire(const FInputActionValue& Value)
+{
+	// 총을 들고 있지 않을때는 처리하지 않는다.
+	if (!bHasPistol) return;
+
+	// 총쏘기 애니메이션 재생
+	auto anim = Cast<UCNetPlayerAnimInstance>(GetMesh()->GetAnimInstance());
+	anim->PlayFireAnimation();
+
+	// 총쏘기
+	FHitResult hitInfo;
+
+	FVector startPos = FollowCamera->GetComponentLocation();
+	FVector endPos = startPos + FollowCamera->GetForwardVector() * 10000;
+
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(this);
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(hitInfo, startPos, endPos, ECC_Visibility, params);
+
+	if (bHit)
+	{
+		// 맞는 부위에 파티클 표시
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GunEffect, hitInfo.Location);
+	}
+
+}
+
+void ASeSAC_NetworkCharacter::DetachPistol(AActor* InPistol)
+{
+	auto mesh = InPistol->GetComponentByClass<UStaticMeshComponent>();
+
+	mesh->SetSimulatePhysics(true);
+	mesh->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+
+	MainUI->ShowCrossHair(false);
+
+}
+
+void ASeSAC_NetworkCharacter::AttachPistol(AActor* InPistol)
+{
+	auto mesh = InPistol->GetComponentByClass<UStaticMeshComponent>();
+	mesh->SetSimulatePhysics(false);
+	mesh->AttachToComponent(GunComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	MainUI->ShowCrossHair(true);
+
+}
+
+void ASeSAC_NetworkCharacter::InitUIWidget()
+{
+	if (MainUIWidget)
+	{
+		MainUI = Cast<UCMainUI>(CreateWidget(GetWorld(), MainUIWidget));
+		MainUI->AddToViewport();
+		MainUI->ShowCrossHair(false);
+	}
+
+}
+
 void ASeSAC_NetworkCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
@@ -87,6 +231,15 @@ void ASeSAC_NetworkCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASeSAC_NetworkCharacter::Look);
+
+		// TakePistol
+		EnhancedInputComponent->BindAction(TakePistolAction, ETriggerEvent::Started, this, &ASeSAC_NetworkCharacter::TakePistol);
+
+		// ReleasePistol
+		EnhancedInputComponent->BindAction(ReleasePistolAction, ETriggerEvent::Started, this, &ASeSAC_NetworkCharacter::ReleasePistol);
+
+		// Fire
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ASeSAC_NetworkCharacter::Fire);
 	}
 	else
 	{

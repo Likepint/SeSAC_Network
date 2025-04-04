@@ -22,6 +22,17 @@ public:
 	UPROPERTY()
 	class ASeSAC_NetworkCharacter* player;
 
+	// 총쏘기에 사용할 몽타주
+	UPROPERTY(EditDefaultsOnly, Category = "Anim")
+	class UAnimMontage* FireMontage;
+
+	// 총쏘기 애니메이션 재생
+	void PlayFireAnimation();
+
+	// 회전값 기억할 변수
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MyAnimSettings")
+	float PitchAngle;
+
 public:
 	virtual void NativeInitializeAnimation() override;
 
