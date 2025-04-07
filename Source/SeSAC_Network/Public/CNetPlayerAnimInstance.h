@@ -33,6 +33,20 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MyAnimSettings")
 	float PitchAngle;
 
+	// 재장전 몽타주
+	UPROPERTY(EditDefaultsOnly, Category = "Anim")
+	class UAnimMontage* ReloadMontage;
+
+	// 재장전 애니메이션 재생
+	void PlayReloadAnimation();
+
+	// 재장전 애니메이션 노티파이 이벤트
+	UFUNCTION()
+	void AnimNotify_OnReloadFinish();
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MyAnimSettings")
+	bool IsDead = false;
+
 public:
 	virtual void NativeInitializeAnimation() override;
 

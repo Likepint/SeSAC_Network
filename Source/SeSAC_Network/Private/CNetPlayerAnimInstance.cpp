@@ -25,6 +25,12 @@ void UCNetPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		// 총소유 여부 적용
 		bHasPistol = player->bHasPistol;
+		
+		// 사망 여부 적용
+		IsDead = player->IsDead;
+
+		if(IsDead)
+			GEngine->AddOnScreenDebugMessage(0, 1, FColor::Cyan, "Dead");
 
 	}
 
@@ -34,5 +40,18 @@ void UCNetPlayerAnimInstance::PlayFireAnimation()
 {
 	if (bHasPistol and FireMontage)
 		Montage_Play(FireMontage);
+
+}
+
+void UCNetPlayerAnimInstance::PlayReloadAnimation()
+{
+	if (bHasPistol and ReloadMontage)
+		Montage_Play(ReloadMontage);
+
+}
+
+void UCNetPlayerAnimInstance::AnimNotify_OnReloadFinish()
+{
+	player->InitAmmoUI();
 
 }
