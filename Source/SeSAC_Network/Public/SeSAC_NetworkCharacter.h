@@ -103,6 +103,48 @@ public:
 	// UI초기화 함수
 	void InitUIWidget();
 
+	// 최대 총알 개수
+	UPROPERTY(EditAnywhere, Category = "Bullet")
+	int32 MaxBulletCount = 10;
+
+	// 남은 총알 개수
+	int32 BulletCount = MaxBulletCount;
+
+	// 재장전에서 사용할 입력 액션
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input)
+	UInputAction* ReloadAction;
+
+	// 재장전 입력 처리 함수
+	void ReloadPistol(const FInputActionValue& Value);
+
+	// 총알 UI 초기화할 함수
+	void InitAmmoUI();
+
+	// 재장전 중인지 기억
+	bool IsReloading = false;
+
+	// 플레이어 체력
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "HP")
+	float MaxHP = 3;
+
+	// 현재 체력
+	UPROPERTY(BlueprintReadOnly, Category = "HP")
+	float hp = MaxHP;
+
+	__declspec(property(get = GetHP, put = SetHP)) float HP;
+	float GetHP();
+	void SetHP(float value);
+
+	UPROPERTY(VisibleAnywhere)
+	class UWidgetComponent* HpUIComp;
+
+	// 피격 처리
+	void DamageProcess();
+
+	// 사망 여부
+	bool IsDead = false;
+
+
 public:
 	ASeSAC_NetworkCharacter();
 

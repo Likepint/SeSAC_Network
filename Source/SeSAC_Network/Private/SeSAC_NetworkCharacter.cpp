@@ -14,6 +14,7 @@
 #include "CNetPlayerAnimInstance.h"
 #include "Components/WidgetComponent.h"
 #include "CMainUI.h"
+#include "CHealthBar.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -61,6 +62,9 @@ ASeSAC_NetworkCharacter::ASeSAC_NetworkCharacter()
 
 	GunComp = CreateDefaultSubobject<USceneComponent>(TEXT("GunComp"));
 	GunComp->SetupAttachment(GetMesh(), TEXT("GunPosition"));
+
+	HpUIComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpUIComp"));
+	HpUIComp->SetupAttachment(GetMesh());
 
 }
 
@@ -140,8 +144,8 @@ void ASeSAC_NetworkCharacter::TakePistol(const FInputActionValue& Value)
 
 void ASeSAC_NetworkCharacter::ReleasePistol(const FInputActionValue& Value)
 {
-	// 총을 잡지 않았을 때는 처리하지 않는다.
-	if (bHasPistol == false) return;
+	// 총을 잡고 있지 않거나 재장전 중이라면 처리하지 않는다.
+	if (bHasPistol == false or IsReloading) return;
 
 	// 총 소유시
 	if (OwnedPistol)
@@ -159,8 +163,11 @@ void ASeSAC_NetworkCharacter::ReleasePistol(const FInputActionValue& Value)
 
 void ASeSAC_NetworkCharacter::Fire(const FInputActionValue& Value)
 {
-	// 총을 들고 있지 않을때는 처리하지 않는다.
-	if (!bHasPistol) return;
+	// 총을 들고 있지 않을때 또는 총알이 없을 경우 처리하지 않는다.
+	if (!bHasPistol or IsReloading or BulletCount <= 0) return;
+
+	// 총알 제거
+	MainUI->PopBullet(--BulletCount);
 
 	// 총쏘기 애니메이션 재생
 	auto anim = Cast<UCNetPlayerAnimInstance>(GetMesh()->GetAnimInstance());
@@ -181,6 +188,15 @@ void ASeSAC_NetworkCharacter::Fire(const FInputActionValue& Value)
 	{
 		// 맞는 부위에 파티클 표시
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), GunEffect, hitInfo.Location);
+
+		// 맞은 대상이 상대방일 경우 데미지 처리
+		auto other = Cast<ASeSAC_NetworkCharacter>(hitInfo.GetActor());
+		if (other)
+		{
+			other->DamageProcess();
+
+			int a = 0;
+		}
 	}
 
 }
@@ -208,12 +224,83 @@ void ASeSAC_NetworkCharacter::AttachPistol(AActor* InPistol)
 
 void ASeSAC_NetworkCharacter::InitUIWidget()
 {
+	// Player가 제어중이 아니라면 처리하지 않는다.
+	auto pc = Cast<APlayerController>(Controller);
+	if (!pc) return;
+
 	if (MainUIWidget)
 	{
 		MainUI = Cast<UCMainUI>(CreateWidget(GetWorld(), MainUIWidget));
 		MainUI->AddToViewport();
 		MainUI->ShowCrossHair(false);
+
+		BulletCount = MaxBulletCount;
+
+		// 총알 추가
+		for (int i = 0; i < MaxBulletCount; ++i)
+			MainUI->AddBullet();
 	}
+
+}
+
+void ASeSAC_NetworkCharacter::ReloadPistol(const FInputActionValue& Value)
+{
+	// 총 소지중이 아니거나 재장전 중이라면 아무 처리하지 않는다.
+	if (!bHasPistol or BulletCount == MaxBulletCount or IsReloading) return;
+
+	// 재장전 애니메이션 재생
+	auto anim = Cast<UCNetPlayerAnimInstance>(GetMesh()->GetAnimInstance());
+	anim->PlayReloadAnimation();
+
+	IsReloading = true;
+}
+
+void ASeSAC_NetworkCharacter::InitAmmoUI()
+{
+	// 총알 개수 초기화
+	BulletCount = MaxBulletCount;
+
+	// 총알 UI 제거
+	MainUI->RemoveAllAmmo();
+
+	// 총알 UI를 다시 셋팅
+	for (int i = 0; i < MaxBulletCount; ++i)
+		MainUI->AddBullet();
+
+	// 재장전 완료 상태로 처리
+	IsReloading = false;
+
+}
+
+float ASeSAC_NetworkCharacter::GetHP()
+{
+	return hp;
+}
+
+void ASeSAC_NetworkCharacter::SetHP(float value)
+{
+	hp = value;
+
+	// UI에 할당할 퍼센트 계산
+	float percent = hp / MaxHP;
+
+	if (MainUI)
+		MainUI->HP = percent;
+	else
+	{
+		auto hpUI = Cast<UCHealthBar>(HpUIComp->GetWidget());
+		hpUI->HP = percent;
+	}
+
+}
+
+void ASeSAC_NetworkCharacter::DamageProcess()
+{
+	// 체력을 감소시킨다.
+	HP--;
+
+	if (HP <= 0)
+		IsDead = true;
 
 }
 
@@ -240,6 +327,9 @@ void ASeSAC_NetworkCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 		// Fire
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ASeSAC_NetworkCharacter::Fire);
+
+		// Reload
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ASeSAC_NetworkCharacter::ReloadPistol);
 	}
 	else
 	{
