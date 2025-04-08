@@ -150,6 +150,11 @@ public:
 
 	virtual void BeginPlay() override;	
 
+public:
+	virtual void Tick(float DeltaSeconds) override;
+
+	void PrintNetLog();
+
 protected:
 
 	/** Called for movement input */
