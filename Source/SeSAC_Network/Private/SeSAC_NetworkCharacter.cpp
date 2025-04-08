@@ -15,6 +15,7 @@
 #include "Components/WidgetComponent.h"
 #include "CMainUI.h"
 #include "CHealthBar.h"
+#include "SeSAC_Network.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -23,6 +24,8 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ASeSAC_NetworkCharacter::ASeSAC_NetworkCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -82,6 +85,35 @@ void ASeSAC_NetworkCharacter::BeginPlay()
 		if (actor->GetName().Contains("BP_Pistol"))
 			PistolActors.Add(actor);
 	}
+
+}
+
+void ASeSAC_NetworkCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	PrintNetLog();
+
+}
+
+void ASeSAC_NetworkCharacter::PrintNetLog()
+{
+	const FString validConnection = GetNetConnection() != nullptr ? TEXT("Valid Connection") : TEXT("Invalid Connection");
+
+	const FString ownerName = GetOwner() != nullptr ? GetOwner()->GetName() : TEXT("No Owner");
+
+	const FString logStr = FString::Printf(TEXT("Connection : %s\n Owner Name : %s\n Local Role : %s\n Remote Role : %s"), *validConnection, *ownerName, *LOCAL_ROLE, *REMOTE_ROLE);
+
+	DrawDebugString(GetWorld(), GetActorLocation() + GetActorUpVector() * 100, *logStr, nullptr, FColor::White, 0, true, 1);
+
+	// 권한(Authority)
+	// ROLE_Authority : 모든 권한을 다 가지고 있음 (로직 실행 가능)
+	// HasAuthority()
+	// 
+	// ROLE_AutonomouseProxy : 제어(Input)만 가능
+	// IsLocallyControlled() : 제어권을 갖고 있는지
+	// 
+	// ROLE_SimulatedProxy : 시뮬레이션만 가능
 
 }
 
