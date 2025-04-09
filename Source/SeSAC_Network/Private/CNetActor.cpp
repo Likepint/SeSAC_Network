@@ -32,9 +32,10 @@ void ACNetActor::BeginPlay()
 
 		auto lambda = [&]()
 			{
-				MatColor = FLinearColor::MakeRandomColor();
+				FLinearColor MatColor = FLinearColor::MakeRandomColor();
 
-				OnRep_ChangeMatColor();
+				//OnRep_ChangeMatColor();
+				ServerRPC_ChangeColor(MatColor);
 			};
 
 		GetWorld()->GetTimerManager().SetTimer(handle, lambda, 1, true);
@@ -150,6 +151,30 @@ void ACNetActor::OnRep_ChangeMatColor()
 {
 	if (Mat)
 		Mat->SetVectorParameterValue(TEXT("FloorColor"), MatColor);
+
+}
+
+void ACNetActor::ServerRPC_ChangeColor_Implementation(const FLinearColor InColor)
+{
+	//if (Mat)
+	//	Mat->SetVectorParameterValue(TEXT("FloorColor"), InColor);
+
+	//ClientRPC_ChangeColor(InColor);
+	MulticastRPC_ChangeColor(InColor);
+
+}
+
+void ACNetActor::ClientRPC_ChangeColor_Implementation(const FLinearColor InColor)
+{
+	if (Mat)
+		Mat->SetVectorParameterValue(TEXT("FloorColor"), InColor);
+
+}
+
+void ACNetActor::MulticastRPC_ChangeColor_Implementation(const FLinearColor InColor)
+{
+	if (Mat)
+		Mat->SetVectorParameterValue(TEXT("FloorColor"), InColor);
 
 }
 

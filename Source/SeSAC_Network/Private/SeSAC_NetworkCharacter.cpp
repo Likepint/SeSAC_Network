@@ -16,6 +16,7 @@
 #include "CMainUI.h"
 #include "CHealthBar.h"
 #include "SeSAC_Network.h"
+#include "Net/UnrealNetwork.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -143,34 +144,7 @@ void ASeSAC_NetworkCharacter::TakePistol(const FInputActionValue& Value)
 	// 1. 총을 잡고 있지 않다면
 	if (bHasPistol == true)	return;
 
-	// 2. 월드에 있는 총을 모두 찾는다.
-	for (const auto& pistol : PistolActors)
-	{
-		// 3. 총의 주인이 있다면 그 총은 검사하지 않는다.
-		// 총이 없어질 수 있는 경우가 있다면 NULL체크 필요
-		if (pistol->GetOwner() != nullptr) continue;
-
-		// 4. 총과의 거리를 구한다.
-		float distance = FVector::Dist(GetActorLocation(), pistol->GetActorLocation());
-
-		// 5. 총이 범위 안에 있다면
-		if (distance <= DistanceToGun)
-		{
-			// 6. 소유중인 총으로 등록한다.
-			OwnedPistol = pistol;
-
-			// 7. 총의 소유자를 자신으로 등록한다.
-			pistol->SetOwner(this);
-
-			// 8. 총 소유 상태를 변경한다.
-			bHasPistol = true;
-
-			// 9. 해당 총을 붙인다.
-			AttachPistol(pistol);
-
-			break;
-		}
-	} // for pistol
+	ServerPRC_TakePistol(); // 클라이언트에서 서버로 요청 (클라이언트)
 
 }
 
@@ -179,17 +153,7 @@ void ASeSAC_NetworkCharacter::ReleasePistol(const FInputActionValue& Value)
 	// 총을 잡고 있지 않거나 재장전 중이라면 처리하지 않는다.
 	if (bHasPistol == false or IsReloading) return;
 
-	// 총 소유시
-	if (OwnedPistol)
-	{
-		DetachPistol(OwnedPistol);
-
-		// 미소유로 설정
-		bHasPistol = false;
-
-		OwnedPistol->SetOwner(nullptr);
-		OwnedPistol = nullptr;
-	}
+	ServerRPC_ReleasePistol(); // 클라이언트에서 서버로 요청 (클라이언트)
 
 }
 
@@ -240,7 +204,10 @@ void ASeSAC_NetworkCharacter::DetachPistol(AActor* InPistol)
 	mesh->SetSimulatePhysics(true);
 	mesh->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 
-	MainUI->ShowCrossHair(false);
+	//MainUI->ShowCrossHair(false);
+
+	if (IsLocallyControlled() and MainUI)
+		MainUI->ShowCrossHair(false);
 
 }
 
@@ -250,7 +217,10 @@ void ASeSAC_NetworkCharacter::AttachPistol(AActor* InPistol)
 	mesh->SetSimulatePhysics(false);
 	mesh->AttachToComponent(GunComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-	MainUI->ShowCrossHair(true);
+	//MainUI->ShowCrossHair(true);
+
+	if (IsLocallyControlled() and MainUI)
+		MainUI->ShowCrossHair(true);
 
 }
 
@@ -369,6 +339,69 @@ void ASeSAC_NetworkCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 	}
 }
 
+// 클라이언트에게 요청받은 내용을 처리 (서버)
+void ASeSAC_NetworkCharacter::ServerPRC_TakePistol_Implementation()
+{
+	// 2. 월드에 있는 총을 모두 찾는다.
+	for (const auto& pistol : PistolActors)
+	{
+		// 3. 총의 주인이 있다면 그 총은 검사하지 않는다.
+		// 총이 없어질 수 있는 경우가 있다면 NULL체크 필요
+		if (pistol->GetOwner() != nullptr) continue;
+
+		// 4. 총과의 거리를 구한다.
+		float distance = FVector::Dist(GetActorLocation(), pistol->GetActorLocation());
+
+		// 5. 총이 범위 안에 있다면
+		if (distance <= DistanceToGun)
+		{
+			// 6. 소유중인 총으로 등록한다.
+			OwnedPistol = pistol;
+
+			// 7. 총의 소유자를 자신으로 등록한다.
+			pistol->SetOwner(this);
+
+			// 8. 총 소유 상태를 변경한다.
+			bHasPistol = true;
+
+			MulticastRPC_TakePistol(pistol); // 요청 받은 내용을 검증 후 클라이언트에게 명령 (서버)
+
+			break;
+		}
+	} // for pistol
+
+}
+
+// 서버에서 클라이언트에게 명령한 내용을 클라이언트에서 실행 (클라이언트)
+void ASeSAC_NetworkCharacter::MulticastRPC_TakePistol_Implementation(AActor* InPistolActor)
+{
+	// 9. 해당 총을 붙인다.
+	AttachPistol(InPistolActor);
+
+}
+
+void ASeSAC_NetworkCharacter::ServerRPC_ReleasePistol_Implementation()
+{
+	// 총 소유시
+	if (OwnedPistol)
+	{
+		MulticastRPC_ReleasePistol(OwnedPistol);
+
+		// 미소유로 설정
+		bHasPistol = false;
+
+		OwnedPistol->SetOwner(nullptr);
+		OwnedPistol = nullptr;
+	}
+
+}
+
+void ASeSAC_NetworkCharacter::MulticastRPC_ReleasePistol_Implementation(AActor* InPistolActor)
+{
+	DetachPistol(InPistolActor);
+
+}
+
 void ASeSAC_NetworkCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -403,4 +436,12 @@ void ASeSAC_NetworkCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ASeSAC_NetworkCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASeSAC_NetworkCharacter, bHasPistol);
+
 }
