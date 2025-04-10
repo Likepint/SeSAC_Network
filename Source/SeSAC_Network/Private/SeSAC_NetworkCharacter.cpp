@@ -17,6 +17,8 @@
 #include "CHealthBar.h"
 #include "SeSAC_Network.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/HorizontalBox.h"
+#include "CNetPlayerController.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -76,7 +78,14 @@ void ASeSAC_NetworkCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InitUIWidget();
+	// InitUIWidget();
+
+	// 클라이언트
+	if (IsLocallyControlled() and HasAuthority() == false)
+	{
+		// UI 위젯 초기화
+		InitUIWidget();
+	}
 
 	// 총 검색
 	TArray<AActor*> allactors;
@@ -160,8 +169,8 @@ void ASeSAC_NetworkCharacter::TakePistol(const FInputActionValue& Value)
 
 void ASeSAC_NetworkCharacter::ReleasePistol(const FInputActionValue& Value)
 {
-	// 총을 잡고 있지 않거나 재장전 중이라면 처리하지 않는다.
-	if (bHasPistol == false or IsReloading) return;
+	// 총을 잡고 있지 않거나 재장전 중이거나, 로컬 사용자가 아니라면 처리하지 않는다.
+	if (bHasPistol == false or IsReloading or !IsLocallyControlled()) return;
 
 	ServerRPC_ReleasePistol(); // 클라이언트에서 서버로 요청 (클라이언트)
 
@@ -205,16 +214,26 @@ void ASeSAC_NetworkCharacter::AttachPistol(AActor* InPistol)
 
 void ASeSAC_NetworkCharacter::InitUIWidget()
 {
+	PRINTLOG(TEXT("[%s] Begin"), Controller ? TEXT("Player") : TEXT("Not Player"));
+
 	// Player가 제어중이 아니라면 처리하지 않는다.
-	auto pc = Cast<APlayerController>(Controller);
+	auto pc = Cast<ACNetPlayerController>(Controller);
 	if (!pc) return;
 
-	if (MainUIWidget)
+	if (pc->MainUIWidget)
 	{
-		MainUI = Cast<UCMainUI>(CreateWidget(GetWorld(), MainUIWidget));
+		if (pc->MainUI == nullptr)
+			pc->MainUI = Cast<UCMainUI>(CreateWidget(GetWorld(), pc->MainUIWidget));
+
+		MainUI = pc->MainUI;
 		MainUI->AddToViewport();
 		MainUI->ShowCrossHair(false);
 
+		hp = MaxHP;
+		MainUI->HP = 1;
+
+		// 총알 모두 제거
+		MainUI->RemoveAllAmmo();
 		BulletCount = MaxBulletCount;
 
 		// 총알 추가
@@ -247,6 +266,18 @@ void ASeSAC_NetworkCharacter::InitAmmoUI()
 
 void ASeSAC_NetworkCharacter::OnRep_HP()
 {
+	// 사망처리
+	if (HP <= 0)
+	{
+		IsDead = true;
+
+		ReleasePistol(FInputActionValue());
+
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		GetCharacterMovement()->DisableMovement();
+	}
+
 	// UI에 할당할 퍼센트 계산
 	float percent = hp / MaxHP;
 
@@ -256,6 +287,13 @@ void ASeSAC_NetworkCharacter::OnRep_HP()
 
 		// 피격 효과 처리
 		MainUI->PlayDamageAnimation();
+
+		// 카메라 쉐이크
+		if (DamageCameraShake)
+		{
+			auto pc = Cast<APlayerController>(Controller);
+			pc->ClientStartCameraShake(DamageCameraShake);
+		}
 	}
 	else
 	{
@@ -283,8 +321,8 @@ void ASeSAC_NetworkCharacter::DamageProcess()
 	// 체력을 감소시킨다.
 	HP--;
 
-	if (HP <= 0)
-		IsDead = true;
+	//if (HP <= 0)
+	//	IsDead = true;
 
 }
 
@@ -455,6 +493,29 @@ void ASeSAC_NetworkCharacter::ClientRPC_Reload_Implementation()
 
 	// 재장전 완료 상태로 처리
 	IsReloading = false;
+
+}
+
+void ASeSAC_NetworkCharacter::DieProcess()
+{
+	auto pc = Cast<APlayerController>(Controller);
+	pc->SetShowMouseCursor(true);
+	GetFollowCamera()->PostProcessSettings.ColorSaturation = FVector4(0, 0, 0, 1);
+
+	// Die UI 표시
+	MainUI->GameOverUI->SetVisibility(ESlateVisibility::Visible);
+
+}
+
+void ASeSAC_NetworkCharacter::PossessedBy(AController* NewController)
+{
+	PRINTLOG(TEXT("Begin"));
+	Super::PossessedBy(NewController);
+
+	if (IsLocallyControlled())
+		InitUIWidget();
+
+	PRINTLOG(TEXT("End"));
 
 }
 

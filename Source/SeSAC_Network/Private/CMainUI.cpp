@@ -2,6 +2,9 @@
 #include "Components/Image.h"
 #include "Components/UniformGridPanel.h"
 #include "Animation/WidgetAnimation.h"
+#include "Components/Button.h"
+#include "Components/HorizontalBox.h"
+#include "CNetPlayerController.h"
 
 void UCMainUI::ShowCrossHair(bool bShow)
 {
@@ -34,5 +37,32 @@ void UCMainUI::RemoveAllAmmo()
 void UCMainUI::PlayDamageAnimation()
 {
 	PlayAnimation(DamageAnimation);
+
+}
+
+void UCMainUI::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	Button_Retry->OnClicked.AddDynamic(this, &UCMainUI::OnRetry);
+	Button_Exit->OnClicked.AddDynamic(this, &UCMainUI::OnExit);
+}
+
+void UCMainUI::OnRetry()
+{
+	// 게임종료 UI 안보이도록 처리
+	GameOverUI->SetVisibility(ESlateVisibility::Hidden);
+
+	if (auto pc = Cast<ACNetPlayerController>(GetOwningPlayer()))
+	{
+		// 마우스 커서 안보이도록 처리
+		pc->SetShowMouseCursor(false);
+		pc->ServerRPC_RespawnPlayer();
+	}
+
+}
+
+void UCMainUI::OnExit()
+{
 
 }
