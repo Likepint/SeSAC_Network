@@ -55,3 +55,10 @@ void UCNetPlayerAnimInstance::AnimNotify_OnReloadFinish()
 	player->InitAmmoUI();
 
 }
+
+void UCNetPlayerAnimInstance::AnimNotify_DieEnd()
+{
+	if (player and player->IsLocallyControlled())
+		player->DieProcess();
+
+}

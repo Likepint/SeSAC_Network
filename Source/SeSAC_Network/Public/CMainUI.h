@@ -43,4 +43,23 @@ public:
 	// 피격처리 애니메이션
 	void PlayDamageAnimation();
 
+	// 게임 종료 버튼
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UHorizontalBox* GameOverUI;
+
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UButton* Button_Retry;
+
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UButton* Button_Exit;
+
+	// 리스폰
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	void OnRetry();
+
+	UFUNCTION()
+	void OnExit();
+
 };

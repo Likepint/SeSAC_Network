@@ -93,9 +93,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Gun)
 	class UParticleSystem* GunEffect;
 
-	// 사용할 위젯 클래스
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UCMainUI> MainUIWidget;
+	//// 사용할 위젯 클래스
+	//UPROPERTY(EditDefaultsOnly, Category = "UI")
+	//TSubclassOf<class UCMainUI> MainUIWidget;
 
 	// MainUIWidget으로 부터 만들어진 인스턴스
 	UPROPERTY()
@@ -218,5 +218,14 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_Reload();
 	void ClientRPC_Reload_Implementation();
+
+	// CameraShake
+	UPROPERTY(EditDefaultsOnly, Category = "CameraShake")
+	TSubclassOf<class UCameraShakeBase> DamageCameraShake;
+
+	// 사망 후 처리
+	void DieProcess();
+
+	virtual void PossessedBy(class AController* NewController) override;
 
 };

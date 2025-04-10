@@ -47,6 +47,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "MyAnimSettings")
 	bool IsDead = false;
 
+	// 사망 처리
+	UFUNCTION()
+	void AnimNotify_DieEnd();
+
 public:
 	virtual void NativeInitializeAnimation() override;
 
