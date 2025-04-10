@@ -36,4 +36,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "HP")
 	float HP = 1;
 
+	// DamageUI 애니메이션
+	UPROPERTY(EditDefaultsOnly, Transient, Category = "MySettings", meta = (BindWidgetAnim))
+	class UWidgetAnimation* DamageAnimation;
+
+	// 피격처리 애니메이션
+	void PlayDamageAnimation();
+
 };

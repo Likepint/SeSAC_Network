@@ -1,6 +1,7 @@
 ﻿#include "CMainUI.h"
 #include "Components/Image.h"
 #include "Components/UniformGridPanel.h"
+#include "Animation/WidgetAnimation.h"
 
 void UCMainUI::ShowCrossHair(bool bShow)
 {
@@ -27,5 +28,11 @@ void UCMainUI::RemoveAllAmmo()
 {
 	for (auto& bullet : BulletPanel->GetAllChildren())
 		BulletPanel->RemoveChild(bullet);
+
+}
+
+void UCMainUI::PlayDamageAnimation()
+{
+	PlayAnimation(DamageAnimation);
 
 }

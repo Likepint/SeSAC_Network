@@ -109,6 +109,7 @@ public:
 	int32 MaxBulletCount = 10;
 
 	// 남은 총알 개수
+	UPROPERTY(Replicated)
 	int32 BulletCount = MaxBulletCount;
 
 	// 재장전에서 사용할 입력 액션
@@ -129,8 +130,11 @@ public:
 	float MaxHP = 3;
 
 	// 현재 체력
-	UPROPERTY(BlueprintReadOnly, Category = "HP")
+	UPROPERTY(BlueprintReadOnly, Category = "HP", ReplicatedUsing = "OnRep_HP")
 	float hp = MaxHP;
+
+	UFUNCTION()
+	void OnRep_HP();
 
 	__declspec(property(get = GetHP, put = SetHP)) float HP;
 	float GetHP();
@@ -196,5 +200,23 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastRPC_ReleasePistol(AActor* InPistolActor);
 	void MulticastRPC_ReleasePistol_Implementation(AActor* InPistolActor);
+
+	// 총 쏘기 RPC
+	UFUNCTION(Reliable, Server)
+	void ServerRPC_Fire();
+	void ServerRPC_Fire_Implementation();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_Fire(bool InbHit, const FHitResult& InHitInfo);
+	void MulticastRPC_Fire_Implementation(bool InbHit, const FHitResult& InHitInfo);
+
+	// 재장전 RPC
+	UFUNCTION(Reliable, Server)
+	void ServerRPC_Reload();
+	void ServerRPC_Reload_Implementation();
+
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_Reload();
+	void ClientRPC_Reload_Implementation();
 
 };
