@@ -57,7 +57,10 @@ void UCMainUI::OnRetry()
 	{
 		// 마우스 커서 안보이도록 처리
 		pc->SetShowMouseCursor(false);
-		pc->ServerRPC_RespawnPlayer();
+
+		// 관전자로 변경 요청
+		//pc->ServerRPC_RespawnPlayer();
+		pc->ServerRPC_ChangeToSpectator();
 	}
 
 }

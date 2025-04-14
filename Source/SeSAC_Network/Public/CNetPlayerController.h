@@ -28,4 +28,9 @@ public:
 	UPROPERTY()
 	class UCMainUI* MainUI;
 
+	// Spectator
+	UFUNCTION(Reliable, Server)
+	void ServerRPC_ChangeToSpectator();
+	void ServerRPC_ChangeToSpectator_Implementation();
+
 };
