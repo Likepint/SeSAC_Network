@@ -15,4 +15,4 @@ REM -WinY 100
 
 REM OutputLog창 표시 여부
 REM -log
-"c:\Program Files\Epic Games\UE_5.5\Engine\Binaries\Win64\UnrealEditor.exe" "c:\Users\parkjeongsu\Desktop\SeSAC_Network\SeSAC_Network.uproject" -game -ResX=600 -ResY=400 -WinX=0 -WinY=100 -log
+"c:\Program Files\Epic Games\UE_5.5\Engine\Binaries\Win64\UnrealEditor.exe" "c:\Users\parkjeongsu\Desktop\SeSAC_Network\SeSAC_Network.uproject" -game -ResX=600 -ResY=400 -WinX=0 -WinY=100 -log -WINDOWS
