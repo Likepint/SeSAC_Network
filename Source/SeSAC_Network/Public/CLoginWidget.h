@@ -22,6 +22,23 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, meta = (BindWidget))
 	class UButton* Button_CreateRoom;
 
+public:
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UWidgetSwitcher* WidgetSwitcher;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* Button_CreateSession;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* Button_FindSession;
+
+	UFUNCTION()
+	void SwitchCreatePanel();
+
+	UFUNCTION()
+	void SwitchFindPanel();
+
+public:
 	UPROPERTY()
 	class UCNetGameInstance* GameInstance;
 
