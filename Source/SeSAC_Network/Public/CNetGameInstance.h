@@ -44,6 +44,12 @@ public:
 
 };
 
+// 세션 검색이 끝났을 때 호출될 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSearchCompleted, const FSessionInfo&, InSessionInfo);
+
+// 세션 검색 상태 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSearchState, bool, bIsSearch);
+
 UCLASS()
 class SESAC_NETWORK_API UCNetGameInstance : public UGameInstance
 {
@@ -66,13 +72,19 @@ public:
 
 public:
 	// 방 구조체 생성
-	FSessionInfo BuildSessionInfoFromResult(int32 index, const FOnlineSessionSearchResult& sr) const;
+	FSessionInfo BuildSessionInfoFromResult(int32 index, const FOnlineSessionSearchResult& sr);
 
 	// 방 검색
 	void FindOtherSession();
 
 	// 방 검색 결과
 	void OnFindSessionComplete(bool bWasSuccessful);
+
+	// 방 검색 상태 콜백을 등록할 델리게이트
+	FSearchState OnSearchState;
+
+	// 방 찾기 완료 콜백을 등록할 델리게이트
+	FSearchCompleted OnSearchCompleted;
 
 	// 방 검색
 	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
