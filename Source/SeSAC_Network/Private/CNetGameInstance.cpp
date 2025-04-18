@@ -17,12 +17,12 @@ void UCNetGameInstance::Init()
 
 		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UCNetGameInstance::OnFindSessionComplete);
 
-		FTimerHandle handle;
-
-		GetWorld()->GetTimerManager().SetTimer(handle, FTimerDelegate::CreateLambda([&]()
-																					{
-																						FindOtherSession();
-																					}), 2, false);
+		// Find 버튼 생성으로 주석
+		//FTimerHandle handle;
+		//GetWorld()->GetTimerManager().SetTimer(handle, FTimerDelegate::CreateLambda([&]()
+		//																			{
+		//																				FindOtherSession();
+		//																			}), 2, false);
 	}
 
 }
@@ -85,6 +85,9 @@ void UCNetGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSucc
 
 void UCNetGameInstance::FindOtherSession()
 {
+	// 델리게이트 Broadcast
+	OnSearchState.Broadcast(true);
+
 	// TSharedPtr 사용법 MakeShareable(new DataType())
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 
@@ -103,7 +106,7 @@ void UCNetGameInstance::FindOtherSession()
 }
 
 // 주어진 세션 검색 결과로부터 FSessionInfo 구조체를 생성하는 함수
-FSessionInfo UCNetGameInstance::BuildSessionInfoFromResult(int32 index, const FOnlineSessionSearchResult& sr) const
+FSessionInfo UCNetGameInstance::BuildSessionInfoFromResult(int32 index, const FOnlineSessionSearchResult& sr)
 {
 	FSessionInfo sessionInfo;
 	sessionInfo.Index = index;
@@ -111,6 +114,10 @@ FSessionInfo UCNetGameInstance::BuildSessionInfoFromResult(int32 index, const FO
 	// 세션 설정에서 방 이름(Room Name)과 호스트 이름(Host Name) 가져오기
 	sr.Session.SessionSettings.Get(FName("ROOM_NAME"), sessionInfo.RoomName);
 	sr.Session.SessionSettings.Get(FName("HOST_NAME"), sessionInfo.HostName);
+
+	// 다국어 인코딩 과정
+	sessionInfo.RoomName = StringBase64Decode(sessionInfo.RoomName);
+	sessionInfo.HostName = StringBase64Decode(sessionInfo.HostName);
 
 	// 최대 유저 수
 	int32 maxUserCount = sr.Session.SessionSettings.NumPublicConnections;
@@ -135,6 +142,9 @@ void UCNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
 	// 검색 실패 처리
 	if (!bWasSuccessful)
 	{
+		// 델리게이트 Broadcast
+		OnSearchState.Broadcast(false);
+
 		PRINTLOG(TEXT("Session Search Failed ..."));
 
 		return;
@@ -158,7 +168,14 @@ void UCNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
 
 		// 세션 정보 출력
 		PRINTLOG(TEXT("%s"), *sessionInfo.ToString());
+
+		// 델리게이트로 위젯에 알려주기
+		OnSearchCompleted.Broadcast(sessionInfo);
+
 	}
+
+	// 델리게이트 Broadcast
+	OnSearchState.Broadcast(false);
 
 }
 

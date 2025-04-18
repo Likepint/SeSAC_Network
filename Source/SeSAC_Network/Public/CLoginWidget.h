@@ -53,4 +53,42 @@ public:
 	UFUNCTION()
 	void OnValueChanged(float InVal);
 
+public:
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* Button_CreateRoomToMain;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* Button_FindRoomToMain;
+
+	UFUNCTION()
+	void BackToMain();
+
+public:
+	// 방 검색 버튼
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UButton* Button_Find;
+
+	// 검색중 메시지
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UTextBlock* Text_SearchingMsg;
+
+	// 방 찾기 버튼 클릭시 호출될 콜백
+	UFUNCTION()
+	void OnClickedFindSession();
+
+	// 방 찾기 상태 이벤트 콜백
+	UFUNCTION()
+	void OnChangeButtonEnable(bool bIsSearching);
+
+public: // Session Slot
+	// Canvas_FindRoom의 스크롤 박스 위젯
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	class UScrollBox* Scroll_RoomList;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UCSessionSlotWidget> SessionInfoWidget;
+
+	UFUNCTION()
+	void AddSlotWidget(const struct FSessionInfo& InSessionInfo);
+
 };
