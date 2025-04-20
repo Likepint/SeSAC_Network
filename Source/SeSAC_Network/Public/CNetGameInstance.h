@@ -90,6 +90,13 @@ public:
 	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
 
 public:
+	// 세션 참여
+	void JoinSelectedSession(int32 InIndex);
+
+	// 세션 참여 콜백
+	void OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCompleteResult::Type InResult);
+
+public:
 	// 다국어 인코딩
 	FString StringBase64Encode(const FString& InStr);
 	FString StringBase64Decode(const FString& InStr);

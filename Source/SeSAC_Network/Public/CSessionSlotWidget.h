@@ -22,8 +22,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UTextBlock* Text_PingSpeed;
 
+	// 세션조인
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UButton* Button_Join;
+
+public:
+	virtual void NativeConstruct() override;
+
 public:
 	void Set(const struct FSessionInfo& InSessionInfo);
+
+	UFUNCTION()
+	void JoinSession();
 
 public:
 	int32 SessionNumber;
