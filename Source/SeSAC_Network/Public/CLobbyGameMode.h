@@ -9,6 +9,7 @@ class SESAC_NETWORK_API ACLobbyGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
-
+public:
+	ACLobbyGameMode();
 
 };

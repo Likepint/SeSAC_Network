@@ -17,6 +17,8 @@ void UCNetGameInstance::Init()
 
 		SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UCNetGameInstance::OnFindSessionComplete);
 
+		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UCNetGameInstance::OnJoinSessionComplete);
+
 		// Find 버튼 생성으로 주석
 		//FTimerHandle handle;
 		//GetWorld()->GetTimerManager().SetTimer(handle, FTimerDelegate::CreateLambda([&]()
@@ -80,6 +82,15 @@ void UCNetGameInstance::CreateMySession(FString InRoomName, int32 InUserCount)
 void UCNetGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	PRINTLOG(TEXT("SessionName : %s, bWasSuccessful : %d"), *SessionName.ToString(), bWasSuccessful);
+
+	// 세션 생성에 성공한 경우
+	if (bWasSuccessful)
+	{
+		// 맵 전환을 통해 서버 역할 시작
+		// - /Game/Network/Maps/BattleMap : 로드할 맵의 경로
+		// - ?listen : 해당 맵에서 서버가 클라이언트 접속을 수락하도록 설정
+		GetWorld()->ServerTravel(TEXT("/Game/Network/Maps/BattleMap?listen"));
+	}
 
 }
 
@@ -176,6 +187,48 @@ void UCNetGameInstance::OnFindSessionComplete(bool bWasSuccessful)
 
 	// 델리게이트 Broadcast
 	OnSearchState.Broadcast(false);
+
+}
+
+void UCNetGameInstance::JoinSelectedSession(int32 InIndex)
+{
+	// 세션 검색 결과 배열을 가져옴
+	auto sr = SessionSearch->SearchResults;
+
+	sr[InIndex].Session.SessionSettings.bUseLobbiesIfAvailable = true;
+	sr[InIndex].Session.SessionSettings.bUsesPresence = true;
+
+	// 선택한 인덱스의 세션에 참여 요청을 보냄
+	// - 첫 번째 파라미터는 로컬 사용자 번호 (일반적으로 0)
+	// - 두 번째는 세션 이름 (MySessionName으로 정의)
+	// - 세 번째는 참여할 세션 정보 (SearchResults 중 선택된 인덱스)
+	SessionInterface->JoinSession(0, FName(MySessionName), sr[InIndex]);
+
+}
+
+void UCNetGameInstance::OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCompleteResult::Type InResult)
+{
+	// 세션 참가에 성공한 경우
+	if (InResult == EOnJoinSessionCompleteResult::Success)
+	{
+		// 로컬 플레이어의 컨트롤러 가져오기
+		auto controller = GetWorld()->GetFirstPlayerController();
+
+		// 실제 접속할 URL을 SessionInterface로부터 받아옴
+		FString url;
+		SessionInterface->GetResolvedConnectString(InSessionName, url);
+
+		PRINTLOG(TEXT("Join URL : %s"), *url);
+
+		// URL이 비어있지 않다면 해당 URL로 접속 (맵 전환)
+		if (!url.IsEmpty())
+			controller->ClientTravel(url, ETravelType::TRAVEL_Absolute); // 절대 경로 방식으로 이동
+	}
+	else
+	{
+		// 실패한 경우 로그 출력
+		PRINTLOG(TEXT("Join Session Failed : %d"), InResult);
+	}
 
 }
 

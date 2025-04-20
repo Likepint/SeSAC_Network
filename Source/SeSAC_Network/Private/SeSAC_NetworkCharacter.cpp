@@ -154,6 +154,15 @@ void ASeSAC_NetworkCharacter::NotifyControllerChanged()
 	}
 }
 
+void ASeSAC_NetworkCharacter::PostNetInit()
+{
+	Super::PostNetInit();
+
+	if (bHasPistol and !OwnedPistol)
+		AttachPistol(OwnedPistol);
+
+}
+
 void ASeSAC_NetworkCharacter::TakePistol(const FInputActionValue& Value)
 {
 	// 총을 소유하지 않았다면 일정 범위 안에 있는 총을 잡는다.
@@ -564,5 +573,7 @@ void ASeSAC_NetworkCharacter::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(ASeSAC_NetworkCharacter, BulletCount);
 
 	DOREPLIFETIME(ASeSAC_NetworkCharacter, hp);
+
+	DOREPLIFETIME(ASeSAC_NetworkCharacter, OwnedPistol);
 
 }
