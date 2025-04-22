@@ -5,6 +5,9 @@
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "CNetPlayerController.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/PlayerState.h"
+#include "Components/TextBlock.h"
 
 void UCMainUI::ShowCrossHair(bool bShow)
 {
@@ -46,6 +49,21 @@ void UCMainUI::NativeConstruct()
 
 	Button_Retry->OnClicked.AddDynamic(this, &UCMainUI::OnRetry);
 	Button_Exit->OnClicked.AddDynamic(this, &UCMainUI::OnExit);
+}
+
+void UCMainUI::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	// 플레이어 리스트를 출력
+	TArray<TObjectPtr<APlayerState>> players = GetWorld()->GetGameState()->PlayerArray;
+
+	FString name;
+	for (const auto& state : players)
+		name.Append(FString::Printf(TEXT("%s\n"), *state->GetPlayerName()));
+
+	Text_Users->SetText(FText::FromString(name));
+
 }
 
 void UCMainUI::OnRetry()
