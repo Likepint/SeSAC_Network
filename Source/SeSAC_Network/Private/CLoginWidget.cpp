@@ -82,12 +82,18 @@ void UCLoginWidget::OnChangeButtonEnable(bool bIsSearching)
 
 void UCLoginWidget::SwitchCreatePanel()
 {
+	if (Edit_UserName->GetText().IsEmpty() == false)
+		GameInstance->MySessionName = Edit_UserName->GetText().ToString();
+
 	WidgetSwitcher->SetActiveWidgetIndex(1);
 
 }
 
 void UCLoginWidget::SwitchFindPanel()
 {
+	if (Edit_UserName->GetText().IsEmpty() == false)
+		GameInstance->MySessionName = Edit_UserName->GetText().ToString();
+
 	WidgetSwitcher->SetActiveWidgetIndex(2);
 
 	OnClickedFindSession();
