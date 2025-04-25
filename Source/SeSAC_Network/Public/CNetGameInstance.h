@@ -96,6 +96,23 @@ public:
 	// 세션 참여 콜백
 	void OnJoinSessionComplete(FName InSessionName, EOnJoinSessionCompleteResult::Type InResult);
 
+public: // 방 나가기
+	void ExitRoom();
+
+	UFUNCTION(Reliable, Server)
+	void ServerRPC_ExitRoom();
+	void ServerRPC_ExitRoom_Implementation();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastRPC_ExitRoom();
+	void MulticastRPC_ExitRoom_Implementation();
+
+	// Callback
+	void OnDestroySessionComplete(FName InSessionName, bool bWasSuccessful);
+
+public:
+	bool IsInRoom();
+
 public:
 	// 다국어 인코딩
 	FString StringBase64Encode(const FString& InStr);

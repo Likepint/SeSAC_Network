@@ -15,6 +15,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
@@ -63,5 +65,8 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastRPC_ChangeColor(const FLinearColor InColor);
 	void MulticastRPC_ChangeColor_Implementation(const FLinearColor InColor);
+
+private:
+	FTimerHandle handle;
 
 };
