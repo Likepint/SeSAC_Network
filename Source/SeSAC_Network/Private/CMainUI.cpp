@@ -8,6 +8,7 @@
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
 #include "Components/TextBlock.h"
+#include "CNetGameInstance.h"
 
 void UCMainUI::ShowCrossHair(bool bShow)
 {
@@ -49,6 +50,7 @@ void UCMainUI::NativeConstruct()
 
 	Button_Retry->OnClicked.AddDynamic(this, &UCMainUI::OnRetry);
 	Button_Exit->OnClicked.AddDynamic(this, &UCMainUI::OnExit);
+
 }
 
 void UCMainUI::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -60,7 +62,8 @@ void UCMainUI::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	FString name;
 	for (const auto& state : players)
-		name.Append(FString::Printf(TEXT("%s\n"), *state->GetPlayerName()));
+		//name.Append(FString::Printf(TEXT("%s\n"), *state->GetPlayerName()));
+		name.Append(FString::Printf(TEXT("%s : %d\n"), *state->GetPlayerName(), (int32)state->GetScore()));
 
 	Text_Users->SetText(FText::FromString(name));
 
@@ -85,5 +88,7 @@ void UCMainUI::OnRetry()
 
 void UCMainUI::OnExit()
 {
+	if (auto instance = Cast<UCNetGameInstance>(GetWorld()->GetGameInstance()))
+		instance->ExitRoom();
 
 }

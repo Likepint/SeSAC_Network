@@ -4,6 +4,7 @@
 #include "SeSAC_NetworkCharacter.h"
 #include "EngineUtils.h"
 #include "Net/UnrealNetwork.h"
+#include "CNetGameInstance.h"
 
 ACNetActor::ACNetActor()
 {
@@ -28,18 +29,36 @@ void ACNetActor::BeginPlay()
 
 	if (HasAuthority())
 	{
-		FTimerHandle handle;
+		auto instance = GetGameInstance<UCNetGameInstance>();
 
-		auto lambda = [&]()
-			{
-				FLinearColor MatColor = FLinearColor::MakeRandomColor();
+		GetWorld()->GetTimerManager().SetTimer(handle, [&, instance]()
+											   {
+												   if (instance->IsInRoom())
+												   {
+													   ServerRPC_ChangeColor(FLinearColor::MakeRandomColor());
+												   }
+											   }, 1, true);
 
-				//OnRep_ChangeMatColor();
-				ServerRPC_ChangeColor(MatColor);
-			};
+		//FTimerHandle handle;
+		// 
+		//auto lambda = [&]()
+		//	{
+		//		FLinearColor MatColor = FLinearColor::MakeRandomColor();
 
-		GetWorld()->GetTimerManager().SetTimer(handle, lambda, 1, true);
+		//		//OnRep_ChangeMatColor();
+		//		ServerRPC_ChangeColor(MatColor);
+		//	};
+
+		//GetWorld()->GetTimerManager().SetTimer(handle, lambda, 1, true);
 	}
+
+}
+
+void ACNetActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearTimer(handle);
+
+	Super::EndPlay(EndPlayReason);
 
 }
 

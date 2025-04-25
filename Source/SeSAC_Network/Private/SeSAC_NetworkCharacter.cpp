@@ -19,6 +19,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Components/HorizontalBox.h"
 #include "CNetPlayerController.h"
+#include "CNetPlayerState.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -452,7 +453,13 @@ void ASeSAC_NetworkCharacter::ServerRPC_Fire_Implementation()
 		// 맞은 대상이 상대방일 경우 데미지 처리
 		auto other = Cast<ASeSAC_NetworkCharacter>(hitInfo.GetActor());
 		if (other)
+		{
 			other->DamageProcess();
+
+			// 스코어 처리
+			auto ps = Cast<ACNetPlayerState>(GetPlayerState());
+			ps->SetScore(ps->GetScore() + 1);
+		}
 	}
 
 	MulticastRPC_Fire(bHit, hitInfo);

@@ -19,6 +19,8 @@ void UCNetGameInstance::Init()
 
 		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UCNetGameInstance::OnJoinSessionComplete);
 
+		SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UCNetGameInstance::OnDestroySessionComplete);
+
 		// Find 버튼 생성으로 주석
 		//FTimerHandle handle;
 		//GetWorld()->GetTimerManager().SetTimer(handle, FTimerDelegate::CreateLambda([&]()
@@ -229,6 +231,43 @@ void UCNetGameInstance::OnJoinSessionComplete(FName InSessionName, EOnJoinSessio
 		// 실패한 경우 로그 출력
 		PRINTLOG(TEXT("Join Session Failed : %d"), InResult);
 	}
+
+}
+
+void UCNetGameInstance::ExitRoom()
+{
+	// 클라이언트 영역
+	ServerRPC_ExitRoom();
+
+}
+
+void UCNetGameInstance::ServerRPC_ExitRoom_Implementation()
+{
+	// 서버 영역
+	MulticastRPC_ExitRoom();
+
+}
+
+void UCNetGameInstance::MulticastRPC_ExitRoom_Implementation()
+{
+	// 클라 영역 ( 서버/클라이언트인 호스트도 포함하는 영역 )
+	SessionInterface->DestroySession(FName(*MySessionName));
+
+}
+
+void UCNetGameInstance::OnDestroySessionComplete(FName InSessionName, bool bWasSuccessful)
+{
+	auto pc = GetWorld()->GetFirstPlayerController();
+	const FString& url = TEXT("/Game/Network/Maps/LobbyMap");
+	pc->ClientTravel(url, TRAVEL_Absolute);
+
+}
+
+bool UCNetGameInstance::IsInRoom()
+{
+	FUniqueNetIdPtr id = GetWorld()->GetFirstLocalPlayerFromController()->GetUniqueNetIdForPlatformUser().GetUniqueNetId();
+
+	return SessionInterface->IsPlayerInSession(FName(*MySessionName), *id);
 
 }
 
